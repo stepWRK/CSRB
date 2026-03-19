@@ -1,3 +1,12 @@
+# Copyright (C) 2026 stepWRK
+#
+# This file is part of SRBcalculate.
+#
+# SRBcalculate is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
 import customtkinter as ctk
 from core import RocketMath
 from data import DataManager
