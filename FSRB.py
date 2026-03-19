@@ -1,3 +1,4 @@
+# внимание, поддержка этой части кода прекращена!
 import os, math
 if not os.path.exists("config.txt"):
     with open("config.txt", "w", encoding="utf-8") as f:
