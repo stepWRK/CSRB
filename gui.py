@@ -418,7 +418,7 @@ class MainWindow:
 
         result = RocketMath.fullCalculation(params)
 
-        if result['Успешно']:
+        if result.get('success', False):
             output = f"""РЕЗУЛЬТАТЫ ПОЛНОГО РАСЧЁТА
 {'=' * 60}
 
