@@ -1,4 +1,5 @@
 # внимание, поддержка этой части кода прекращена!
+# это старая версия для истории надо перейти к /CSRB, не используйте это 
 import os, math
 if not os.path.exists("config.txt"):
     with open("config.txt", "w", encoding="utf-8") as f:
