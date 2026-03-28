@@ -1,0 +1,4 @@
+interpreters:
+os
+match
+customtkinter
