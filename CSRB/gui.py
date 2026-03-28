@@ -14,9 +14,9 @@ from data import DataManager
 class MainWindow:
     def __init__(self):
         self.window = ctk.CTk()
-        self.window.title("SRBcalculate")
+        self.window.title("SRBcalc")
         self.window.geometry("1920x1080")
-        self.window.grid_columnconfigure(0, weight=1)# основной контейнер
+        self.window.grid_columnconfigure(0, weight=1)
         self.window.grid_rowconfigure(1, weight=1)
         self.topFrame = ctk.CTkFrame(self.window)# верхняя панель с кнопками переключения
         self.topFrame.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
@@ -92,7 +92,7 @@ class MainWindow:
 
         ctk.CTkLabel(# === ТОПЛИВО ===
             leftFrame,
-            text="ПАРАМЕТРЫ ТОПЛИВА",
+            text="параметры топлива",
             font=("Arial", 16, "bold")
         ).pack(pady=5)
 
@@ -249,19 +249,19 @@ class MainWindow:
         helpText.pack(fill="both", expand=True, padx=20, pady=20)
 
         helpContent = """
-        РУКОВОДСТВО ПО РАСЧЁТУ РДТТ
+        Руководство по расчёту
         ===========================
 
-        ОСНОВНЫЕ ФОРМУЛЫ:
-        -----------------
-        1. Характеристическая скорость C* = (1/Γ) * √(R * T0)
+        осн формулы:
+        
+        1) Характеристическая скорость C* = (1/Γ) * √(R * T0)
            Γ = √(k) * (2/(k+1))^((k+1)/(2(k-1)))
 
-        2. Давление в камере Pc = [a * ρ * Ab * C* / A*] ^ (1/(1-n))
+        2) Давление в камере Pc = [a * ρ * Ab * C* / A*] ^ (1/(1-n))
 
-        3. Тяга F = Pc * A* * Cf
+        3) Тяга F = Pc * A* * Cf
 
-        4. Скорость горения r = a * Pc^n
+        4) Скорость горения r = a * Pc^n
 
 
         ОПИСАНИЕ ПАРАМЕТРОВ:
@@ -279,21 +279,21 @@ class MainWindow:
         Dthroat- Диаметр критического сечения (м)
         Dexit  - Диаметр среза сопла (м)
 
-        МЕРЫ БЕЗОПАСНОСТИ:
+        безопсность:
         ------------------
         - Всегда используйте запас прочности > 2 для стенок корпуса
         - Не превышайте предел текучести материала
         - Проверяйте коэффициент Kn (обычно 200-400 для KNSB)
         - Макс. давление должно быть < давления разрушения корпуса
 
-        РАСПРОСТРАНЁННЫЕ ТОПЛИВА:
+        основные топлива:
         -------------------------
         KNSB  (KNO3 + Сорбит)    : T0≈1720K, n≈0.32
         KNSU  (KNO3 + Сахар)      : T0≈1700K, n≈0.33
         KNDX  (KNO3 + Декстроза)  : T0≈1680K, n≈0.326
         APCP  (Перхлорат аммония) : T0≈2500K, n≈0.3-0.5
 
-        ТИПИЧНЫЕ ЗНАЧЕНИЯ Kn:
+        типичн. значения Kn:
         ---------------------
         KNSB:  Kn=200-250 → Pc≈3-5 МПа
         KNSU:  Kn=250-300 → Pc≈4-6 МПа
@@ -322,7 +322,7 @@ class MainWindow:
         textWidget = ctk.CTkTextbox(self.materialsTab, wrap="none", font=("Consolas", 12))
         textWidget.pack(fill="both", expand=True, padx=20, pady=20)
 
-        output = "БАЗА ДАННЫХ МАТЕРИАЛОВ\n"# формируем таблицу
+        output = "Б.Д материялов\n"# формируем таблицу
         output += "=" * 80 + "\n"
 
         for row in materials:
@@ -415,7 +415,7 @@ class MainWindow:
     def resetToDefaults(self):
         params = DataManager.getDefaultParams()
         self.setParams(params)
-        self.showResult("Сброс к значениям по умолчанию")
+        self.showResult("сброс значений по умолчанию")
 
     def showResult(self, text):
         self.resultText.delete("0.0", "end")
@@ -428,36 +428,36 @@ class MainWindow:
         result = RocketMath.fullCalculation(params)
 
         if result.get('success', False):
-            output = f"""РЕЗУЛЬТАТЫ ПОЛНОГО РАСЧЁТА
+            output = f""" результаты полного расчёта
 {'=' * 60}
 
-ТЕРМОДИНАМИКА:
+термодинафиг:
 C* = {result['Cstar']:.0f} м/с
 C* (теоретич.) = {result['Cstar'] / 0.95:.0f} м/с (с учётом потерь)
 
-ГЕОМЕТРИЯ:
+геометрия:
 Ab = {result['Ab'] * 10000:.2f} см²
 A* = {result['Athroat'] * 1e6:.2f} мм²
 Kn = {result['Kn']:.0f}
 Степень расширения = {params.get('Dexit', 0) / params.get('Dthroat', 1):.2f}
 
-ПАРАМЕТРЫ КАМЕРЫ:
+пари камеры сгор:
 Pc = {result['PcMPa']:.2f} МПа
 Pc = {result['Pc'] / 101325:.2f} атм
 Скорость горения = {result['r'] * 1000:.2f} мм/с
 Скорость горения = {result['r'] * 1000 / 25.4:.2f} дюйм/с
 
-ХАРАКТЕРИСТИКИ:
+характеристики:
 Тяга (ур. моря) = {result['F']:.0f} Н
 Тяга = {result['F'] / 4.448:.0f} фунт-сил
 Уд. импульс (оц.) = {result['Cstar'] * 1.5 / 9.81:.0f} с
 
-ПРОВЕРКА БЕЗОПАСНОСТИ:
+пареверке в безоопаснасте:
 Макс. давление = {result['PcMPa']:.2f} МПа
 Напряжение стенки (2мм Al) = {result['PcMPa'] * params.get('Dout', 0.05) / (2 * 0.002):.0f} МПа
 Запас прочности = {275 / (result['PcMPa'] * params.get('Dout', 0.05) / (2 * 0.002)):.1f}x
 
-ВХОДНЫЕ ДАННЫЕ:
+входные данные:
 T0={params['T0']}K, n={params['n']:.3f}
 L={params['L'] * 1000:.0f}мм, Dcore={params['Dcore'] * 1000:.1f}мм
 Al={params.get('AlContent', 0)}%, O/F={params.get('OF', 2.5)}
