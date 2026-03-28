@@ -37,7 +37,7 @@ with open("config.txt", "r", encoding="utf-8") as f:
             except:
                 globals()[name] = value
 
-print("""——————
+print("""—————— v0.6
 расчёт:""")
 
 A_core = math.pi * (D_core/2)**2
