@@ -25,7 +25,7 @@ class MainWindow:
         self.window.GridRowconfigure(0, weight=0)
         self.window.GridRowconfigure(1, weight=1)
 
-        self.create_top_bar() # верхняя панель с кнопками
+        self.create_top_bar() #верхняя панель с кнопками
 
         self.tabContainer = ctk.CTkFrame(self.window) # контейнер для вкладок
         self.tabContainer.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")

@@ -127,7 +127,7 @@ class RocketMath:
         return Athroat * Pc / Cstar
 
     @staticmethod
-    def thrustCoefficientWithLosses(CfIdeal, EtaNozzle=0.97): # физика, мы как бы теряем из-за сопла тягу и тд..
+    def thrustCoefficientWithLosses(CfIdeal, EtaNozzle=0.97): # физика, мы как бы теряем из-за сопла тягу и тд.
         return CfIdeal * EtaNozzle
 
     @staticmethod

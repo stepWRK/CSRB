@@ -60,7 +60,7 @@ class DataManager:
             return False, str(e), params
 
     @staticmethod
-    def getDefaultParams():# парам по умолчанию
+    def getDefaultParams():#парам по умолчанию
         return {
             'T0': 1720,
             'R': 197.9,
