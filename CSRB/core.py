@@ -40,8 +40,55 @@ class RocketMath:
         return (a * rho * Ab * Cstar / Athroat) ** (1 / (1 - n))
 
     @staticmethod
-    def thrustCoefficient(k, Pc, Pa=101325, expansionRatio=1):
-        return 1.5   # просто вариант, напомните автору доделать, если автор не забыл, а автор забыл
+    def ThrustCoefficient(k, Pc, Pa, Pe, Ae, Athroat):
+
+        # полн расчёт коэффициента тяги Cf
+        # k показатель адиабаты
+        # Pc давление в камере Па
+        # Pa атмосферное давление Па
+        # Pe давление на срезе сопла Па
+        # Ae площадь среза сопла м2
+        # Athroat площадь критики м2
+        # коэффициент расшир сопла
+        expansionRatio = Ae / Athroat
+
+        # давлению на срезе сопла (формула из газовой динамики)
+        if expansionRatio <= 1:
+            Pe = Pc
+        else:
+            # уровнение для Pe
+            # (Ae/A*)² = (1/M²) * [(2/(k+1))*(1 + (k-1)M²/2)]^((k+1)/(k-1))
+            # Mach на срезе
+            M = RocketMath.machFromAreaRatio(expansionRatio, k)
+            Pe = Pc * (1 + (k - 1) / 2 * M ** 2) ** (-k / (k - 1))
+
+        # коэфициент тяги от расширения
+        CfThrust = math.sqrt(
+            2 * k ** 2 / (k - 1) * (2 / (k + 1)) ** ((k + 1) / (k - 1)) * (1 - (Pe / Pc) ** ((k - 1) / k)))
+
+        # компонент от недог/перерасширения
+        CfPressure = (Pe - Pa) / Pc * expansionRatio
+        return CfThrust + CfPressure
+
+    @staticmethod
+    def machFromAreaRatio(A_ratio, k, M_guess=1.5, tolerance=1e-6):
+        M = M_guess
+        for _ in range(50):  # максимум 50 итераций
+            # функц: f(M) = (A/A*)² - (1/M²) * [(2/(k+1))*(1 + (k-1)M²/2)]^((k+1)/(k-1))
+            term1 = (2 / (k + 1)) * (1 + (k - 1) / 2 * M ** 2)
+            term2 = term1 ** ((k + 1) / (k - 1))
+            A_ratio_calc = (1 / M) * math.sqrt(term2)
+
+            f = A_ratio_calc - A_ratio
+            if abs(f) < tolerance:
+                return M
+
+            # производная
+            df_dM = -1 / M ** 2 * math.sqrt(term2) + (1 / M) * (1 / (2 * math.sqrt(term2))) * \
+                    ((k + 1) / (k - 1)) * term1 ** ((k + 1) / (k - 1) - 1) * ((k - 1) / 2) * 2 * M
+            M -= f / df_dM
+
+        return M
 
     @staticmethod
     def thrust(Pc, Athroat, Cf=1.5):
@@ -72,58 +119,77 @@ class RocketMath:
         return web / r
 
     @staticmethod
+    def specificImpulse(F, mass_flow_rate): # УД в сек
+        return F / (mass_flow_rate * 9.80665)
+
+    @staticmethod
+    def massFlowRate(Athroat, Pc, Cstar):# массовый расход
+        return Athroat * Pc / Cstar
+
+    @staticmethod
+    def thrustCoefficientWithLosses(CfIdeal, EtaNozzle=0.97): # физика, мы как бы теряем из-за сопла тягу и тд..
+        return CfIdeal * EtaNozzle
+
+    @staticmethod
     def fullCalculation(params):
         try:
-            Dthroat = params.get("Dthroat", 0.012)# основ параметры
+            Dthroat = params.get("Dthroat", 0.012)
             Dcore = params.get("Dcore", 0.015)
+            Dexit = params.get("Dexit", Dthroat * 3)
             L = params.get("L", 0.3)
             Dout = params.get("Dout", 0.05)
             Ncores = params.get("Ncores", 1)
             wallThick = params.get("wallThick", 0.002)
             etaComb = params.get("etaComb", 0.95)
 
-            Athroat = RocketMath.throatArea(Dthroat)# площади
+            Athroat = RocketMath.throatArea(Dthroat)# расчёт площадей
+            Aexit = RocketMath.exitArea(Dexit)
             Ab = RocketMath.burnArea(Dcore, L, Ncores)
 
-            Cstar = RocketMath.characteristicVelocity(# я забыл что это, позже вспомню, завтра, если сейчас завтра то перечитай
+            Cstar = RocketMath.characteristicVelocity(#термодинафиг
                 params["T0"], params["R"], params["k"], etaComb
             )
 
-            Pc = RocketMath.chamberPressure(# давление
+            Pc = RocketMath.chamberPressure(# давить в камере
                 params["a"], params["rho"], Ab, Cstar, Athroat, params["n"]
             )
 
-            Cf = RocketMath.thrustCoefficient(params["k"], Pc)
-            F = RocketMath.thrust(Pc, Athroat, Cf)# тяга
+            Pa = params.get("Pa", 101325)#коэффиц тяги
+            Cf = RocketMath.ThrustCoefficient(
+                params["k"], Pc, Pa, None, Aexit, Athroat
+            )
 
-            Kn = RocketMath.Kn(Ab, Athroat)# Kn
+            etaNozzle = params.get("etaNozzle", 0.97) # юлин сопло потери делает...
+            Cf = RocketMath.thrustCoefficientWithLosses(Cf, etaNozzle)
 
-            r = RocketMath.burnRate(Pc, params["a"], params["n"])# скорость горения
+            F = RocketMath.thrust(Pc, Athroat, Cf) # тяга и масс расХод
+            mdot = RocketMath.massFlowRate(Athroat, Pc, Cstar)
+            Isp = RocketMath.specificImpulse(F, mdot)
 
-            mass = RocketMath.propellantMass(params["rho"], L, Dout, Dcore, Ncores)# масса топлива
-
-            web = (Dout - Dcore) / 2# время горения (толщина СВОда)
-            t_burn = RocketMath.burnTime(web, params["a"], Pc, params["n"])
-
-            stress = RocketMath.caseStress(Pc, Dout, wallThick)# напряжение в корпусе
+            Kn = RocketMath.Kn(Ab, Athroat) # остальная дрибидень
+            r = RocketMath.burnRate(Pc, params["a"], params["n"])
+            mass = RocketMath.propellantMass(params["rho"], L, Dout, Dcore, Ncores)
+            web = (Dout - Dcore) / 2
+            tBurn = RocketMath.burnTime(web, params["a"], Pc, params["n"])
+            stress = RocketMath.caseStress(Pc, Dout, wallThick)
 
             return {
                 "Cstar": Cstar,
                 "Ab": Ab,
                 "Athroat": Athroat,
+                "Aexit": Aexit,
                 "Pc": Pc,
                 "PcMPa": Pc / 1_000_000,
                 "F": F,
+                "Cf": Cf,
+                "mdot": mdot,
+                "Isp": Isp,
                 "Kn": Kn,
                 "r": r,
                 "mass": mass,
-                "t_burn": t_burn,
+                "tBurn": tBurn,
                 "stress": stress,
                 "success": True
             }
-
         except Exception as e:
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return {"success": False, "error": str(e)}
