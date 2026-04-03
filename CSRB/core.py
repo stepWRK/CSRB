@@ -159,7 +159,7 @@ class RocketMath:
                 params["k"], Pc, Pa, None, Aexit, Athroat
             )
 
-            etaNozzle = params.get("etaNozzle", 0.97) # юлин сопло потери делает...
+            etaNozzle = params.get("etaNozzle", 0.97) # блин сопло потери делает...
             Cf = RocketMath.thrustCoefficientWithLosses(Cf, etaNozzle)
 
             F = RocketMath.thrust(Pc, Athroat, Cf) # тяга и масс расХод

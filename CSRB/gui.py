@@ -10,212 +10,132 @@
 import customtkinter as ctk
 from core import RocketMath
 from data import DataManager
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("green")
 
 class MainWindow:
     def __init__(self):
         self.window = ctk.CTk()
         self.window.title("SRBcalc")
-        self.window.geometry("1920x1080")
-        self.window.grid_columnconfigure(0, weight=1)
-        self.window.grid_rowconfigure(1, weight=1)
-        self.topFrame = ctk.CTkFrame(self.window)# верхняя панель с кнопками переключения
-        self.topFrame.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
-        self.btnMain = ctk.CTkButton(# кнопки для переключения вкладок
-            self.topFrame,
-            text="Основной расчёт",
-            command=lambda: self.showTab("main"),
-            width=150,
-            height=40,
-            fg_color="#2e7d32",
-            hover_color="#1e5a20",      #цветь
-            text_color="white"
-        )
-        self.btnMain.pack(side="left", padx=5, pady=5)
+        self.window.geometry("1200x680")
+        self.window.minsize(1024, 600)
 
-        self.btnHelp = ctk.CTkButton(
-            self.topFrame,
-            text="Справка",
-            command=lambda: self.showTab("help"),
-            width=150,
-            height=40,
-            fg_color="#1976d2",
-            hover_color="#0d47a1",      #цветь
-            text_color="white"
-        )
-        self.btnHelp.pack(side="left", padx=5, pady=5)
 
-        self.btnMaterials = ctk.CTkButton(
-            self.topFrame,
-            text="Материалы",
-            command=lambda: self.showTab("materials"),
-            width=150,
-            height=40,
-            fg_color="#ed6c02",
-            hover_color="#b74d00",      #цветь
-            text_color="white"
-        )
-        self.btnMaterials.pack(side="left", padx=5, pady=5)
+        self.window.GridСolumnconfigure(0, weight=1) # осн сетка
+        self.window.GridRowconfigure(0, weight=0)
+        self.window.GridRowconfigure(1, weight=1)
 
-        self.btnGraphs = ctk.CTkButton(
-            self.topFrame,
-            text="Графики",
-            command=lambda: self.showTab("graphs"),
-            width=150,
-            height=40,
-            fg_color="#9c27b0",
-            hover_color="#6a1b9a",      #цветь
-            text_color="white"
-        )
-        self.btnGraphs.pack(side="left", padx=5, pady=5)
-        self.btnGraphs.pack(side="left", padx=5, pady=5)
-        self.tabContainer = ctk.CTkFrame(self.window)
-        self.tabContainer.grid(row=1, column=0, padx=10, pady=5, sticky="nsew")
-        self.tabContainer.grid_columnconfigure(0, weight=1)
-        self.tabContainer.grid_rowconfigure(0, weight=1)
-        self.createMainTab()# создаём все вкладки
-        self.createHelpTab()
-        self.createMaterialsTab()
-        self.createGraphsTab()
-        self.showTab("main")
+        self.create_top_bar() # верхняя панель с кнопками
+
+        self.tabContainer = ctk.CTkFrame(self.window) # контейнер для вкладок
+        self.tabContainer.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")
+        self.tabContainer.GridСolumnconfigure(0, weight=1)
+        self.tabContainer.GridRowconfigure(0, weight=1)
+
+        self.tabs = {}
+        self.TabLoaded = {"main": False, "help": False, "materials": False, "graphs": False}
+
+        self.CreateMainTab()
+        self.ShowTab("main")
+
         self.loadInitialData()
 
-    def createMainTab(self):
-        self.mainTab = ctk.CTkFrame(self.tabContainer)
-        self.mainTab.grid_columnconfigure(0, weight=1)
-        self.mainTab.grid_columnconfigure(1, weight=1)
-        self.mainTab.grid_rowconfigure(0, weight=1)
+        self.window.update_idletasks()
 
-        leftFrame = ctk.CTkFrame(self.mainTab)# левая панель (ввод)
+    def create_top_bar(self):
+        self.topFrame = ctk.CTkFrame(self.window, height=50)
+        self.topFrame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+        self.topFrame.grid_propagate(False)
+
+        buttons = [
+            ("Основной расчёт", "main", "#2e7d32", "#1e5a20"),
+            ("Справка", "help", "#1976d2", "#0d47a1"),
+            ("Материалы", "materials", "#ed6c02", "#b74d00"),
+            ("Графики", "graphs", "#9c27b0", "#6a1b9a"),
+        ]
+
+        for text, TabName, color, hover in buttons:
+            btn = ctk.CTkButton(
+                self.topFrame,
+                text=text,
+                command=lambda t=TabName: self.ShowTab(t),
+                width=140,
+                height=35,
+                fg_color=color,
+                hover_color=hover,
+                text_color="white"
+            )
+            btn.pack(side="left", padx=5, pady=5)
+
+    def CreateMainTab(self):
+        if self.TabLoaded["main"]:
+            return
+
+        self.mainTab = ctk.CTkFrame(self.tabContainer)
+        self.mainTab.GridСolumnconfigure(0, weight=1)
+        self.mainTab.GridСolumnconfigure(1, weight=1)
+        self.mainTab.GridRowconfigure(0, weight=1)
+
+        leftFrame = ctk.CTkFrame(self.mainTab)
         leftFrame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
-        self.entries = {}# Словарь для полей ввода
+        self.entries = {}
 
-        ctk.CTkLabel(# === ТОПЛИВО ===
-            leftFrame,
-            text="параметры топлива",
-            font=("Arial", 16, "bold")
-        ).pack(pady=5)
-
-        fuelParams = [ # Базовые параметры топлива
-            ("Температура T0 (K):", "T0", "1720", "Температура горения"),
-            ("Газовая постоянная R (Дж/кг·K):", "R", "197.9", "Газовая постоянная"),
-            ("Показатель адиабаты k:", "k", "1.133", "Показатель адиабаты"),
-            ("Коэф. скорости горения a:", "a", "5.83e-6", "Коэф. скорости горения"),
-            ("Показатель степени n:", "n", "0.319", "Степень в законе горения"),
-            ("Плотность ρ (кг/м³):", "rho", "1890", "Плотность топлива")
+        ParamSections = [
+            ("ПАРАМЕТРЫ ТОПЛИВА", 16, [
+                ("Температура T0 (K):", "T0", "1720"),
+                ("Газовая постоянная R (Дж/кг·K):", "R", "197.9"),
+                ("Показатель адиабаты k:", "k", "1.133"),
+                ("Коэф. скорости горения a:", "a", "5.83e-6"),
+                ("Показатель степени n:", "n", "0.319"),
+                ("Плотность ρ (кг/м³):", "rho", "1890"),
+            ]),
+            ("ДОП. ПАРАМЕТРЫ", 14, [
+                ("Содержание Al (%):", "AlContent", "0"),
+                ("Соотношение O/F:", "OF", "2.5"),
+                ("КПД камеры:", "etaComb", "0.95"),
+                ("КПД сопла:", "etaNozzle", "0.97"),
+            ]),
+            ("ГЕОМЕТРИЯ (метры)", 16, [
+                ("Длина шашки L:", "L", "0.3"),
+                ("Диаметр канала Dcore:", "Dcore", "0.015"),
+                ("Наруж. диаметр Dout:", "Dout", "0.05"),
+                ("Диаметр критики Dthroat:", "Dthroat", "0.012"),
+                ("Диаметр среза Dexit:", "Dexit", "0.03"),
+                ("Кол-во каналов:", "Ncores", "1"),
+            ]),
+            ("МАТЕРИАЛ КОРПУСА", 14, [
+                ("Материал:", "caseMat", "Aluminum"),
+                ("Толщина стенки (мм):", "wallThick", "2.0"),
+                ("Запас прочности:", "safetyFactor", "2.5"),
+            ]),
         ]
 
-        for label, key, default, hint in fuelParams:
-            frame = ctk.CTkFrame(leftFrame)
-            frame.pack(fill="x", padx=10, pady=2)
+        for SectionTitle, FontSize, params in ParamSections:
+            ctk.CTkLabel(
+                leftFrame,
+                text=SectionTitle,
+                font=("Arial", FontSize, "bold")
+            ).pack(pady=(10, 5), anchor="w", padx=10)
 
-            ctk.CTkLabel(frame, text=label, width=180, anchor="w").pack(side="left", padx=5)
-            entry = ctk.CTkEntry(frame, width=120)
-            entry.pack(side="left", padx=5)
-            entry.insert(0, default)
+            for label, key, default in params:
+                row = ctk.CTkFrame(leftFrame)
+                row.pack(fill="x", padx=10, pady=2)
 
-            ctk.CTkLabel(frame, text="ⓘ", width=20, text_color="gray").pack(side="left")# Подсказка при наведении
+                ctk.CTkLabel(row, text=label, width=210, anchor="w").pack(side="left", padx=5)
+                entry = ctk.CTkEntry(row, width=120)
+                entry.pack(side="left", padx=5)
+                entry.insert(0, default)
+                self.entries[key] = entry
 
-            self.entries[key] = entry
+        BtnFrame = ctk.CTkFrame(leftFrame)
+        BtnFrame.pack(fill="x", padx=10, pady=15)
 
-        ctk.CTkLabel(# === ДОПОЛНИТЕЛЬНЫЕ ПАРАМЕТРЫ ТОПЛИВА ===
-            leftFrame,
-            text="ДОП. ПАРАМЕТРЫ ТОПЛИВА",
-            font=("Arial", 14, "bold")
-        ).pack(pady=5)
+        for text, cmd in [("Сохранить", self.saveToFile), ("Загрузить", self.loadFromFile),
+                          ("Сброс", self.resetToDefaults)]:
+            ctk.CTkButton(BtnFrame, text=text, command=cmd, width=100, height=32).pack(side="left", padx=5)
 
-        extraFuel = [
-            ("Содержание Al (%):", "AlContent", "0", "Процент алюминия"),
-            ("Соотношение O/F:", "OF", "2.5", "Соотношение окислитель/горючее"),
-            ("КПД камеры:", "etaComb", "0.95", "КПД камеры"),
-            ("КПД сопла:", "etaNozzle", "0.97", "КПД сопла")
-        ]
-
-        for label, key, default, hint in extraFuel:
-            frame = ctk.CTkFrame(leftFrame)
-            frame.pack(fill="x", padx=10, pady=2)
-
-            ctk.CTkLabel(frame, text=label, width=180, anchor="w").pack(side="left", padx=5)
-            entry = ctk.CTkEntry(frame, width=120)
-            entry.pack(side="left", padx=5)
-            entry.insert(0, default)
-            self.entries[key] = entry
-
-        ctk.CTkLabel(# === ГЕОМЕТРИЯ ===
-            leftFrame,
-            text="ГЕОМЕТРИЯ ШАШКИ (метры)",
-            font=("Arial", 16, "bold")
-        ).pack(pady=5)
-
-        geomParams = [
-            ("Длина шашки L:", "L", "0.3", "Длина шашки"),
-            ("Диаметр канала Dcore:", "Dcore", "0.015", "Диаметр канала"),
-            ("Наруж. диаметр Dout:", "Dout", "0.05", "Наружный диаметр"),
-            ("Диаметр критики Dthroat:", "Dthroat", "0.012", "Диаметр критики"),
-            ("Диаметр среза Dexit:", "Dexit", "0.03", "Диаметр среза сопла"),
-            ("Кол-во каналов:", "Ncores", "1", "Количество каналов")
-        ]
-
-        for label, key, default, hint in geomParams:
-            frame = ctk.CTkFrame(leftFrame)
-            frame.pack(fill="x", padx=10, pady=2)
-
-            ctk.CTkLabel(frame, text=label, width=180, anchor="w").pack(side="left", padx=5)
-            entry = ctk.CTkEntry(frame, width=120)
-            entry.pack(side="left", padx=5)
-            entry.insert(0, default)
-            self.entries[key] = entry
-
-        ctk.CTkLabel(# === МАТЕРИАЛЫ КОРПУСА ===
-            leftFrame,
-            text="МАТЕРИАЛ КОРПУСА",
-            font=("Arial", 14, "bold")
-        ).pack(pady=5)
-
-        caseParams = [
-            ("Материал корпуса:", "caseMat", "Aluminum", "Материал корпуса"),
-            ("Толщина стенки (мм):", "wallThick", "2.0", "Толщина стенки"),
-            ("Запас прочности:", "safetyFactor", "2.5", "Запас прочности")
-        ]
-
-        for label, key, default, hint in caseParams:
-            frame = ctk.CTkFrame(leftFrame)
-            frame.pack(fill="x", padx=10, pady=2)
-
-            ctk.CTkLabel(frame, text=label, width=180, anchor="w").pack(side="left", padx=5)
-            entry = ctk.CTkEntry(frame, width=120)
-            entry.pack(side="left", padx=5)
-            entry.insert(0, default)
-            self.entries[key] = entry
-
-        btnFrame = ctk.CTkFrame(leftFrame)# Кнопки
-        btnFrame.pack(fill="x", padx=10, pady=10)
-
-        ctk.CTkButton(
-            btnFrame,
-            text="Сохранить",
-            command=self.saveToFile,
-            height=35,
-            width=120
-        ).pack(side="left", padx=5)
-
-        ctk.CTkButton(
-            btnFrame,
-            text="Загрузить",
-            command=self.loadFromFile,
-            height=35,
-            width=120
-        ).pack(side="left", padx=5)
-
-        ctk.CTkButton(
-            btnFrame,
-            text="Сброс",
-            command=self.resetToDefaults,
-            height=35,
-            width=120
-        ).pack(side="left", padx=5)
-
-        rightFrame = ctk.CTkFrame(self.mainTab)# правая панель (результаты)
+        rightFrame = ctk.CTkFrame(self.mainTab)
         rightFrame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
 
         ctk.CTkLabel(
@@ -224,90 +144,85 @@ class MainWindow:
             font=("Arial", 18, "bold")
         ).pack(pady=10)
 
-        self.resultText = ctk.CTkTextbox(
-            rightFrame,
-            wrap="word",
-            font=("Consolas", 12),
-            height=400
-        )
+        self.resultText = ctk.CTkTextbox(rightFrame, wrap="word", font=("Consolas", 11))
         self.resultText.pack(fill="both", expand=True, padx=10, pady=5)
 
-        ctk.CTkButton(# кнопка расчёта
+        ctk.CTkButton(
             rightFrame,
             text="РАССЧИТАТЬ",
             command=self.calculate,
-            height=50,
-            font=("Arial", 19, "bold"),
+            height=45,
+            font=("Arial", 16, "bold"),
             fg_color="#2e7d32",
             hover_color="#1e5a20"
         ).pack(pady=10)
 
-    def createHelpTab(self):
+        self.tabs["main"] = self.mainTab
+        self.TabLoaded["main"] = True
+
+    def create_help_tab(self):
+        if self.TabLoaded["help"]:
+            return
+
         self.helpTab = ctk.CTkFrame(self.tabContainer)
+        TextWidget = ctk.CTkTextbox(self.helpTab, wrap="word", font=("Arial", 12))
+        TextWidget.pack(fill="both", expand=True, padx=15, pady=15)
 
-        helpText = ctk.CTkTextbox(self.helpTab, wrap="word", font=("Arial", 12))
-        helpText.pack(fill="both", expand=True, padx=20, pady=20)
+        HelpMe = """
+РУКОВОДСТВО ПО РАСЧЁТУ
+—————————————————
 
-        helpContent = """
-        Руководство по расчёту
-        ===========================
+ОСНОВНЫЕ ФОРМУЛЫ:
+—————————————————
+C* = (1/Γ) * √(R * T0)  - характеристическая скорость
+Γ = √(k) * (2/(k+1))^((k+1)/(2(k-1)))
+Pc = [a * ρ * Ab * C* / A*] ^ (1/(1-n))  - давление в камере
+F = Pc * A* * Cf  - тяга
+r = a * Pc^n  - скорость горения
 
-        осн формулы:
-        
-        1) Характеристическая скорость C* = (1/Γ) * √(R * T0)
-           Γ = √(k) * (2/(k+1))^((k+1)/(2(k-1)))
+ПАРАМЕТРЫ:
+—————————————————
+T0    - Температура горения (K)
+R     - Газовая постоянная (Дж/кг·K)
+k     - Показатель адиабаты
+a, n  - Коэффициенты скорости горения
+ρ     - Плотность топлива (кг/м³)
+L     - Длина шашки (м)
+Dcore - Диаметр канала (м)
+Dout  - Наружный диаметр (м)
+Dthroat - Диаметр критики (м)
+Dexit - Диаметр среза сопла (м)
 
-        2) Давление в камере Pc = [a * ρ * Ab * C* / A*] ^ (1/(1-n))
+ТИПИЧНЫЕ ТОПЛИВА:
+—————————————————
+KNSB (KNO3+Сорбит) : T0≈1720K, n≈0.32
+KNSU (KNO3+Сахар)  : T0≈1700K, n≈0.33
+APCP               : T0≈2500K, n≈0.3-0.5
 
-        3) Тяга F = Pc * A* * Cf
+БЕЗОПАСНОСТЬ:
+—————————————————
+- Запас прочности корпуса > 2
+- Kn = 200-400 для любительских топлив
+- Не превышайте предел текучести материала
+"""
+        TextWidget.insert("0.0", HelpMe)
+        TextWidget.configure(state="disabled")
 
-        4) Скорость горения r = a * Pc^n
+        self.tabs["help"] = self.helpTab
+        self.TabLoaded["help"] = True
 
+    def create_materials_tab(self):
+        if self.TabLoaded["materials"]:
+            return
 
-        ОПИСАНИЕ ПАРАМЕТРОВ:
-        --------------------
-        T0  - Температура горения (K)
-        R   - Удельная газовая постоянная (Дж/кг·K)
-        k   - Показатель адиабаты (Cp/Cv)
-        a   - Коэффициент скорости горения
-        n   - Показатель степени в законе горения (0 < n < 1)
-        ρ   - Плотность топлива (кг/м³)
-
-        L      - Длина шашки (м)
-        Dcore  - Начальный диаметр канала (м)
-        Dout   - Наружный диаметр шашки (м)
-        Dthroat- Диаметр критического сечения (м)
-        Dexit  - Диаметр среза сопла (м)
-
-        безопсность:
-        ------------------
-        - Всегда используйте запас прочности > 2 для стенок корпуса
-        - Не превышайте предел текучести материала
-        - Проверяйте коэффициент Kn (обычно 200-400 для KNSB)
-        - Макс. давление должно быть < давления разрушения корпуса
-
-        основные топлива:
-        -------------------------
-        KNSB  (KNO3 + Сорбит)    : T0≈1720K, n≈0.32
-        KNSU  (KNO3 + Сахар)      : T0≈1700K, n≈0.33
-        KNDX  (KNO3 + Декстроза)  : T0≈1680K, n≈0.326
-        APCP  (Перхлорат аммония) : T0≈2500K, n≈0.3-0.5
-
-        типичн. значения Kn:
-        ---------------------
-        KNSB:  Kn=200-250 → Pc≈3-5 МПа
-        KNSU:  Kn=250-300 → Pc≈4-6 МПа
-        APCP:  Kn=300-400 → Pc≈5-8 МПа
-        """
-
-        helpText.insert("0.0", helpContent)
-        helpText.configure(state="disabled")
-
-    def createMaterialsTab(self):
         self.materialsTab = ctk.CTkFrame(self.tabContainer)
+        TextWidget = ctk.CTkTextbox(self.materialsTab, wrap="none", font=("Consolas", 11))
+        TextWidget.pack(fill="both", expand=True, padx=15, pady=15)
 
-        materials = [# таблица материалов
-            ["Материал", "Плотность кг/м³", "Текучесть МПа", "Прочность МПа", "Макс. T K"],
+        materials = [
+            ["Материал", "Плотность", "Текучесть", "Прочность", "Макс.T"],
+            ["", "кг/м³", "МПа", "МПа", "K"],
+            ["-" * 12, "-" * 8, "-" * 8, "-" * 8, "-" * 6],
             ["Алюминий 6061-T6", "2700", "275", "310", "500"],
             ["Алюминий 7075-T6", "2810", "505", "570", "480"],
             ["Сталь 4130", "7850", "435", "670", "800"],
@@ -315,62 +230,57 @@ class MainWindow:
             ["Титан Ti-6Al-4V", "4430", "880", "950", "700"],
             ["Углепластик", "1600", "400", "600", "450"],
             ["Стеклопластик", "1850", "150", "250", "400"],
-            ["ПВХ", "1400", "45", "55", "350"],
-            ["Поликарбонат", "1200", "65", "70", "400"]
         ]
 
-        textWidget = ctk.CTkTextbox(self.materialsTab, wrap="none", font=("Consolas", 12))
-        textWidget.pack(fill="both", expand=True, padx=20, pady=20)
-
-        output = "Б.Д материялов\n"# формируем таблицу
-        output += "=" * 80 + "\n"
-
+        output = "База данных материялов\n" + "—" * 55 + "\n"
         for row in materials:
-            output += f"{row[0]:<20} {row[1]:>12} {row[2]:>12} {row[3]:>12} {row[4]:>12}\n"
+            output += f"{row[0]:<18} {row[1]:>8} {row[2]:>8} {row[3]:>8} {row[4]:>6}\n"
 
-        output += "\n" + "=" * 80 + "\n"
-        output += "Используйте эти значения для расчёта прочности корпуса\n"
-        output += "Всегда применяйте запас прочности 2-3x\n"
+        output += "\n" + "—" * 55 + "\n"
+        output += "Запас прочности: 2-3x от расчётного напряжения"
 
-        textWidget.insert("0.0", output)
-        textWidget.configure(state="disabled")
+        TextWidget.insert("0.0", output)
+        TextWidget.configure(state="disabled")
+
+        self.tabs["materials"] = self.materialsTab
+        self.TabLoaded["materials"] = True
 
     def createGraphsTab(self):
+        if self.TabLoaded["graphs"]:
+            return
+
         self.graphsTab = ctk.CTkFrame(self.tabContainer)
 
-        ctk.CTkLabel(
-            self.graphsTab,
-            text="Здесь будут отображаться графики",
-            font=("Arial", 16)
-        ).pack(pady=50)
+        frame = ctk.CTkFrame(self.graphsTab)
+        frame.pack(expand=True)
 
-        ctk.CTkLabel(
-            self.graphsTab,
-            text="(Скоро появятся: зависимость давления от времени, кривые тяги, скорость горения)",
-            font=("Arial", 9)
-        ).pack()
+        ctk.CTkLabel(frame, text="Гафики", font=("Arial", 20, "bold")).pack(pady=20)
+        ctk.CTkLabel(frame, text="В разработке", font=("Arial", 14)).pack()
+        ctk.CTkLabel(frame, text="(P(t), F(t), r(t))", font=("Arial", 11), text_color="gray").pack()
 
-    def showTab(self, tabName): #ёкарный бабай, вкладки!
-        self.mainTab.grid_remove()
-        self.helpTab.grid_remove()
-        self.materialsTab.grid_remove()
-        self.graphsTab.grid_remove()
+        self.tabs["graphs"] = self.graphsTab
+        self.TabLoaded["graphs"] = True
 
-        if tabName == "main":
-            self.mainTab.grid(row=0, column=0, sticky="nsew")
-        elif tabName == "help":
-            self.helpTab.grid(row=0, column=0, sticky="nsew")
-        elif tabName == "materials":
-            self.materialsTab.grid(row=0, column=0, sticky="nsew")
-        elif tabName == "graphs":
-            self.graphsTab.grid(row=0, column=0, sticky="nsew")
+    def ShowTab(self, TabName):
+        if TabName == "help" and not self.TabLoaded["help"]:
+            self.create_help_tab()
+        elif TabName == "materials" and not self.TabLoaded["materials"]:
+            self.create_materials_tab()
+        elif TabName == "graphs" and not self.TabLoaded["graphs"]:
+            self.createGraphsTab()
 
-    def getParams(self): #отдай значения, мои
+        for tab in self.tabs.values():
+            tab.GridRemove()
+
+        if TabName in self.tabs:
+            self.tabs[TabName].grid(row=0, column=0, sticky="nsew")
+
+    def getParams(self):
         params = {}
         for key, entry in self.entries.items():
             try:
                 val = entry.get().strip()
-                if 'e' in val or 'E' in val:
+                if 'e' in val.lower():
                     params[key] = float(val)
                 elif '.' in val:
                     params[key] = float(val)
@@ -378,44 +288,34 @@ class MainWindow:
                     params[key] = int(val)
             except:
                 params[key] = 0
-                print(f"Ошибка чтения {key}: {val}")
         return params
 
-    def setParams(self, params): #знач в полях ввода
+    def setParams(self, params):
         for key, value in params.items():
             if key in self.entries:
                 self.entries[key].delete(0, "end")
                 self.entries[key].insert(0, str(value))
 
-    def loadInitialData(self): #загрузка нач данных
+    def loadInitialData(self):
         success, msg, params = DataManager.loadFromFile()
         if success:
             self.setParams(params)
-            print("Загружено:", msg)
         else:
-            params = DataManager.getDefaultParams()
-            self.setParams(params)
-            print("Значения по умолчанию")
+            self.setParams(DataManager.getDefaultParams())
 
     def saveToFile(self):
-        params = self.getParams()
-        success, msg = DataManager.saveToFile(params)
+        success, msg = DataManager.saveToFile(self.getParams())
         self.showResult(msg)
-        print("Сохранено:", msg)
 
     def loadFromFile(self):
         success, msg, params = DataManager.loadFromFile()
         if success:
             self.setParams(params)
-            self.showResult(msg)
-        else:
-            self.showResult(f"Ошибка: {msg}")
-        print("Загружено:", msg)
+        self.showResult(msg)
 
     def resetToDefaults(self):
-        params = DataManager.getDefaultParams()
-        self.setParams(params)
-        self.showResult("сброс значений по умолчанию")
+        self.setParams(DataManager.getDefaultParams())
+        self.showResult("Сброшено к значениям по умолчанию")
 
     def showResult(self, text):
         self.resultText.delete("0.0", "end")
@@ -423,50 +323,39 @@ class MainWindow:
 
     def calculate(self):
         params = self.getParams()
-        print("Расчёт с помощью:", params)
-
         result = RocketMath.fullCalculation(params)
 
         if result.get('success', False):
-            output = f""" результаты полного расчёта
-{'=' * 60}
+            output = f"""
+╔══════════════════════════════════════════════════════════════╗
+║                    РЕЗУЛЬТАТЫ РАСЧЁТА                        ║
+╚══════════════════════════════════════════════════════════════╝
 
-термодинафиг:
-C* = {result['Cstar']:.0f} м/с
-C* (теоретич.) = {result['Cstar'] / 0.95:.0f} м/с (с учётом потерь)
+ТЕРМОДИНАМИКА:
+   C* = {result['Cstar']:.0f} м/с
 
-геометрия:
-Ab = {result['Ab'] * 10000:.2f} см²
-A* = {result['Athroat'] * 1e6:.2f} мм²
-Kn = {result['Kn']:.0f}
-Степень расширения = {params.get('Dexit', 0) / params.get('Dthroat', 1):.2f}
+ГЕОМЕТРИЯ:
+   Ab = {result['Ab'] * 10000:.1f} см²
+   A* = {result['Athroat'] * 1e6:.1f} мм²
+   Kn = {result['Kn']:.0f}
 
-пари камеры сгор:
-Pc = {result['PcMPa']:.2f} МПа
-Pc = {result['Pc'] / 101325:.2f} атм
-Скорость горения = {result['r'] * 1000:.2f} мм/с
-Скорость горения = {result['r'] * 1000 / 25.4:.2f} дюйм/с
+КАМЕРА СГОРАНИЯ:
+   Pc = {result['PcMPa']:.2f} МПа ({result['Pc'] / 101325:.1f} атм)
+   r = {result['r'] * 1000:.2f} мм/с
 
-характеристики:
-Тяга (ур. моря) = {result['F']:.0f} Н
-Тяга = {result['F'] / 4.448:.0f} фунт-сил
-Уд. импульс (оц.) = {result['Cstar'] * 1.5 / 9.81:.0f} с
+ХАРАКТЕРИСТИКИ:
+   Тяга F = {result['F']:.0f} Н ({result['F'] / 4.448:.0f} lbf)
+   Cf = {result.get('Cf', 0):.3f}
+   Isp = {result.get('Isp', 0):.0f} с
+   Расход = {result.get('mdot', 0):.3f} кг/с
 
-пареверке в безоопаснасте:
-Макс. давление = {result['PcMPa']:.2f} МПа
-Напряжение стенки (2мм Al) = {result['PcMPa'] * params.get('Dout', 0.05) / (2 * 0.002):.0f} МПа
-Запас прочности = {275 / (result['PcMPa'] * params.get('Dout', 0.05) / (2 * 0.002)):.1f}x
-
-входные данные:
-T0={params['T0']}K, n={params['n']:.3f}
-L={params['L'] * 1000:.0f}мм, Dcore={params['Dcore'] * 1000:.1f}мм
-Al={params.get('AlContent', 0)}%, O/F={params.get('OF', 2.5)}
+ПРОЧНОСТЬ:
+   Напряжение = {result['stress'] / 1e6:.1f} МПа
 """
         else:
-            output = f"ОШИБКА: {result['ошибка']}"
+            output = f"ОШИБКА: {result.get('error', 'Неизвестная ошибка')}"
 
         self.showResult(output)
-        print("Расчёт завершён")
 
     def run(self):
         self.window.mainloop()
