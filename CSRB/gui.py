@@ -21,22 +21,22 @@ class MainWindow:
         self.window.minsize(1024, 600)
 
 
-        self.window.GridСolumnconfigure(0, weight=1) # осн сетка
-        self.window.GridRowconfigure(0, weight=0)
-        self.window.GridRowconfigure(1, weight=1)
+        self.window.grid_columnconfigure(0, weight=1) # осн сетка
+        self.window.grid_rowconfigure(0, weight=0)
+        self.window.grid_rowconfigure(1, weight=1)
 
-        self.create_top_bar() #верхняя панель с кнопками
+        self.create_top_bar() # верхняя панель с кнопками
 
         self.tabContainer = ctk.CTkFrame(self.window) # контейнер для вкладок
         self.tabContainer.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")
-        self.tabContainer.GridСolumnconfigure(0, weight=1)
-        self.tabContainer.GridRowconfigure(0, weight=1)
+        self.tabContainer.grid_columnconfigure(0, weight=1)
+        self.tabContainer.grid_rowconfigure(0, weight=1)
 
         self.tabs = {}
-        self.TabLoaded = {"main": False, "help": False, "materials": False, "graphs": False}
+        self.tab_loaded = {"main": False, "help": False, "materials": False, "graphs": False}
 
-        self.CreateMainTab()
-        self.ShowTab("main")
+        self.create_main_tab()
+        self.show_tab("main")
 
         self.loadInitialData()
 
@@ -54,11 +54,11 @@ class MainWindow:
             ("Графики", "graphs", "#9c27b0", "#6a1b9a"),
         ]
 
-        for text, TabName, color, hover in buttons:
+        for text, tab_name, color, hover in buttons:
             btn = ctk.CTkButton(
                 self.topFrame,
                 text=text,
-                command=lambda t=TabName: self.ShowTab(t),
+                command=lambda t=tab_name: self.show_tab(t),
                 width=140,
                 height=35,
                 fg_color=color,
@@ -67,21 +67,21 @@ class MainWindow:
             )
             btn.pack(side="left", padx=5, pady=5)
 
-    def CreateMainTab(self):
-        if self.TabLoaded["main"]:
+    def create_main_tab(self):
+        if self.tab_loaded["main"]:
             return
 
         self.mainTab = ctk.CTkFrame(self.tabContainer)
-        self.mainTab.GridСolumnconfigure(0, weight=1)
-        self.mainTab.GridСolumnconfigure(1, weight=1)
-        self.mainTab.GridRowconfigure(0, weight=1)
+        self.mainTab.grid_columnconfigure(0, weight=1)
+        self.mainTab.grid_columnconfigure(1, weight=1)
+        self.mainTab.grid_rowconfigure(0, weight=1)
 
         leftFrame = ctk.CTkFrame(self.mainTab)
         leftFrame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
         self.entries = {}
 
-        ParamSections = [
+        param_sections = [
             ("ПАРАМЕТРЫ ТОПЛИВА", 16, [
                 ("Температура T0 (K):", "T0", "1720"),
                 ("Газовая постоянная R (Дж/кг·K):", "R", "197.9"),
@@ -111,11 +111,11 @@ class MainWindow:
             ]),
         ]
 
-        for SectionTitle, FontSize, params in ParamSections:
+        for section_title, font_size, params in param_sections:
             ctk.CTkLabel(
                 leftFrame,
-                text=SectionTitle,
-                font=("Arial", FontSize, "bold")
+                text=section_title,
+                font=("Arial", font_size, "bold")
             ).pack(pady=(10, 5), anchor="w", padx=10)
 
             for label, key, default in params:
@@ -128,12 +128,12 @@ class MainWindow:
                 entry.insert(0, default)
                 self.entries[key] = entry
 
-        BtnFrame = ctk.CTkFrame(leftFrame)
-        BtnFrame.pack(fill="x", padx=10, pady=15)
+        btn_frame = ctk.CTkFrame(leftFrame)
+        btn_frame.pack(fill="x", padx=10, pady=15)
 
         for text, cmd in [("Сохранить", self.saveToFile), ("Загрузить", self.loadFromFile),
                           ("Сброс", self.resetToDefaults)]:
-            ctk.CTkButton(BtnFrame, text=text, command=cmd, width=100, height=32).pack(side="left", padx=5)
+            ctk.CTkButton(btn_frame, text=text, command=cmd, width=100, height=32).pack(side="left", padx=5)
 
         rightFrame = ctk.CTkFrame(self.mainTab)
         rightFrame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
@@ -158,17 +158,17 @@ class MainWindow:
         ).pack(pady=10)
 
         self.tabs["main"] = self.mainTab
-        self.TabLoaded["main"] = True
+        self.tab_loaded["main"] = True
 
     def create_help_tab(self):
-        if self.TabLoaded["help"]:
+        if self.tab_loaded["help"]:
             return
 
         self.helpTab = ctk.CTkFrame(self.tabContainer)
-        TextWidget = ctk.CTkTextbox(self.helpTab, wrap="word", font=("Arial", 12))
-        TextWidget.pack(fill="both", expand=True, padx=15, pady=15)
+        text_widget = ctk.CTkTextbox(self.helpTab, wrap="word", font=("Arial", 12))
+        text_widget.pack(fill="both", expand=True, padx=15, pady=15)
 
-        HelpMe = """
+        help_text = """
 РУКОВОДСТВО ПО РАСЧЁТУ
 —————————————————
 
@@ -205,19 +205,19 @@ APCP               : T0≈2500K, n≈0.3-0.5
 - Kn = 200-400 для любительских топлив
 - Не превышайте предел текучести материала
 """
-        TextWidget.insert("0.0", HelpMe)
-        TextWidget.configure(state="disabled")
+        text_widget.insert("0.0", help_text)
+        text_widget.configure(state="disabled")
 
         self.tabs["help"] = self.helpTab
-        self.TabLoaded["help"] = True
+        self.tab_loaded["help"] = True
 
     def create_materials_tab(self):
-        if self.TabLoaded["materials"]:
+        if self.tab_loaded["materials"]:
             return
 
         self.materialsTab = ctk.CTkFrame(self.tabContainer)
-        TextWidget = ctk.CTkTextbox(self.materialsTab, wrap="none", font=("Consolas", 11))
-        TextWidget.pack(fill="both", expand=True, padx=15, pady=15)
+        text_widget = ctk.CTkTextbox(self.materialsTab, wrap="none", font=("Consolas", 11))
+        text_widget.pack(fill="both", expand=True, padx=15, pady=15)
 
         materials = [
             ["Материал", "Плотность", "Текучесть", "Прочность", "Макс.T"],
@@ -239,14 +239,14 @@ APCP               : T0≈2500K, n≈0.3-0.5
         output += "\n" + "—" * 55 + "\n"
         output += "Запас прочности: 2-3x от расчётного напряжения"
 
-        TextWidget.insert("0.0", output)
-        TextWidget.configure(state="disabled")
+        text_widget.insert("0.0", output)
+        text_widget.configure(state="disabled")
 
         self.tabs["materials"] = self.materialsTab
-        self.TabLoaded["materials"] = True
+        self.tab_loaded["materials"] = True
 
-    def createGraphsTab(self):
-        if self.TabLoaded["graphs"]:
+    def create_graphs_tab(self):
+        if self.tab_loaded["graphs"]:
             return
 
         self.graphsTab = ctk.CTkFrame(self.tabContainer)
@@ -259,21 +259,21 @@ APCP               : T0≈2500K, n≈0.3-0.5
         ctk.CTkLabel(frame, text="(P(t), F(t), r(t))", font=("Arial", 11), text_color="gray").pack()
 
         self.tabs["graphs"] = self.graphsTab
-        self.TabLoaded["graphs"] = True
+        self.tab_loaded["graphs"] = True
 
-    def ShowTab(self, TabName):
-        if TabName == "help" and not self.TabLoaded["help"]:
+    def show_tab(self, tab_name):
+        if tab_name == "help" and not self.tab_loaded["help"]:
             self.create_help_tab()
-        elif TabName == "materials" and not self.TabLoaded["materials"]:
+        elif tab_name == "materials" and not self.tab_loaded["materials"]:
             self.create_materials_tab()
-        elif TabName == "graphs" and not self.TabLoaded["graphs"]:
-            self.createGraphsTab()
+        elif tab_name == "graphs" and not self.tab_loaded["graphs"]:
+            self.create_graphs_tab()
 
         for tab in self.tabs.values():
-            tab.GridRemove()
+            tab.grid_remove()
 
-        if TabName in self.tabs:
-            self.tabs[TabName].grid(row=0, column=0, sticky="nsew")
+        if tab_name in self.tabs:
+            self.tabs[tab_name].grid(row=0, column=0, sticky="nsew")
 
     def getParams(self):
         params = {}
