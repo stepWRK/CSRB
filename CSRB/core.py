@@ -7,20 +7,16 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 
-import math
+import math #  и тут математике!
 
 class RocketMath:
 
     @staticmethod
-    def throatArea(Dthroat): #площадь крит гОрения
+    def throatArea(Dthroat):
         return math.pi * (Dthroat / 2) ** 2
 
     @staticmethod
-    def exitArea(Dexit):
-        return math.pi * (Dexit / 2) ** 2
-
-    @staticmethod
-    def burnArea(Dcore, L, Ncores=1):# площадь горен
+    def burnArea(Dcore, L, Ncores=1):
         return math.pi * Dcore * L * Ncores
 
     @staticmethod
@@ -28,160 +24,183 @@ class RocketMath:
         return math.sqrt(k) * (2 / (k + 1)) ** ((k + 1) / (2 * (k - 1)))
 
     @staticmethod
-    def characteristicVelocity(T0, R, k, etaComb=0.95):# характ скор с уч С
+    def characteristicVelocity(T0, R, k, etaComb=0.95):
         gamma = RocketMath.gammaFunction(k)
-        Cstar_ideal = (1 / gamma) * math.sqrt(R * T0)
-        return Cstar_ideal * etaComb
+        return (1 / gamma) * math.sqrt(R * T0) * etaComb
 
     @staticmethod
     def chamberPressure(a, rho, Ab, Cstar, Athroat, n):
-        if Athroat <= 0:
-            raise ValueError("Athroat must be > 0")
+        if Athroat <= 0 or Ab <= 0:
+            return 0
         return (a * rho * Ab * Cstar / Athroat) ** (1 / (1 - n))
 
     @staticmethod
-    def ThrustCoefficient(k, Pc, Pa, Pe, Ae, Athroat):
-
-        # полн расчёт коэффициента тяги Cf
-        # k показатель адиабаты
-        # Pc давление в камере Па
-        # Pa атмосферное давление Па
-        # Pe давление на срезе сопла Па
-        # Ae площадь среза сопла м2
-        # Athroat площадь критики м2
-        # коэффициент расшир сопла
-        expansionRatio = Ae / Athroat
-
-        # давлению на срезе сопла (формула из газовой динамики)
-        if expansionRatio <= 1:
-            Pe = Pc
-        else:
-            # уровнение для Pe
-            # (Ae/A*)² = (1/M²) * [(2/(k+1))*(1 + (k-1)M²/2)]^((k+1)/(k-1))
-            # Mach на срезе
-            M = RocketMath.machFromAreaRatio(expansionRatio, k)
-            Pe = Pc * (1 + (k - 1) / 2 * M ** 2) ** (-k / (k - 1))
-
-        # коэфициент тяги от расширения
-        CfThrust = math.sqrt(
-            2 * k ** 2 / (k - 1) * (2 / (k + 1)) ** ((k + 1) / (k - 1)) * (1 - (Pe / Pc) ** ((k - 1) / k)))
-
-        # компонент от недог/перерасширения
-        CfPressure = (Pe - Pa) / Pc * expansionRatio
-        return CfThrust + CfPressure
-
-    @staticmethod
-    def machFromAreaRatio(A_ratio, k, M_guess=1.5, tolerance=1e-6):
-        M = M_guess
-        for _ in range(50):  # максимум 50 итераций
-            # функц: f(M) = (A/A*)² - (1/M²) * [(2/(k+1))*(1 + (k-1)M²/2)]^((k+1)/(k-1))
-            term1 = (2 / (k + 1)) * (1 + (k - 1) / 2 * M ** 2)
-            term2 = term1 ** ((k + 1) / (k - 1))
-            A_ratio_calc = (1 / M) * math.sqrt(term2)
-
-            f = A_ratio_calc - A_ratio
-            if abs(f) < tolerance:
-                return M
-
-            # производная
-            df_dM = -1 / M ** 2 * math.sqrt(term2) + (1 / M) * (1 / (2 * math.sqrt(term2))) * \
-                    ((k + 1) / (k - 1)) * term1 ** ((k + 1) / (k - 1) - 1) * ((k - 1) / 2) * 2 * M
-            M -= f / df_dM
-
-        return M
-
-    @staticmethod
-    def thrust(Pc, Athroat, Cf=1.5):
-        return Pc * Athroat * Cf
-
-    @staticmethod
-    def Kn(Ab, Athroat):
-        return Ab / Athroat
-
-    @staticmethod
     def burnRate(Pc, a, n):
-        return a * (Pc ** n)
+        return a * (Pc ** n) if Pc > 0 else 0
 
     @staticmethod
-    def caseStress(Pc, Dout, wallThick):
-        R = Dout / 2
-        return Pc * R / wallThick
+    def massFlowRate(Athroat, Pc, Cstar):
+        return Athroat * Pc / Cstar if Cstar > 0 else 0
 
     @staticmethod
-    def propellantMass(rho, L, Dout, Dcore, Ncores=1):# масс топлива
+    def propellantMass(rho, L, Dout, Dcore, Ncores=1):
         V_total = math.pi * (Dout / 2) ** 2 * L
         V_core = math.pi * (Dcore / 2) ** 2 * L * Ncores
         return rho * (V_total - V_core)
 
     @staticmethod
-    def burnTime(web, a, Pc, n):# BURN RATE!
-        r = RocketMath.burnRate(Pc, a, n)
-        return web / r
+    def calculateTimeEvolution(params, numPoints=200):
+        Dthroat = params.get("Dthroat", 0.007)
+        Dcore   = params.get("Dcore", 0.018)
+        L       = params.get("L", 0.200)
+        Dout    = params.get("Dout", 0.040)
+        Ncores  = params.get("Ncores", 1)
+        etaComb = params.get("etaComb", 0.95)
+        T0      = params.get("T0", 1720)
+        R_gas   = params.get("R", 197.9)
+        k       = params.get("k", 1.13)
+        a       = params.get("a", 2.5e-5)  #реализме ( увеличено для него)
+        n       = params.get("n", 0.40)
+        rho     = params.get("rho", 1890)
 
-    @staticmethod
-    def specificImpulse(F, mass_flow_rate): # УД в сек
-        return F / (mass_flow_rate * 9.80665)
+        Athroat = RocketMath.throatArea(Dthroat)
+        if Athroat <= 0:
+            return {"success": False, "error": "Athroat must be > 0"}
 
-    @staticmethod
-    def massFlowRate(Athroat, Pc, Cstar):# массовый расход
-        return Athroat * Pc / Cstar
+        Cstar = RocketMath.characteristicVelocity(T0, R_gas, k, etaComb)
 
-    @staticmethod
-    def thrustCoefficientWithLosses(CfIdeal, EtaNozzle=0.97): # физика, мы как бы теряем из-за сопла тягу и тд.
-        return CfIdeal * EtaNozzle
+        web = (Dout - Dcore) / 2.0
+        total_mass = RocketMath.propellantMass(rho, L, Dout, Dcore, Ncores)
+
+        Ab0 = math.pi * Dcore * L * Ncores
+        Pc0 = RocketMath.chamberPressure(a, rho, Ab0, Cstar, Athroat, n)
+        F0  = Pc0 * Athroat
+        r0  = RocketMath.burnRate(Pc0, a, n)
+
+        t_max = web / r0 if r0 > 0 else 1.0
+        dt = t_max / numPoints
+
+        print(f"[LOG 1] Dcore={Dcore*1000:.1f}mm, Dout={Dout*1000:.1f}mm, Throat={Dthroat*1000:.1f}mm")
+        print(f"[LOG 2] Pc0={Pc0/1e6:.2f}MPa, r0={r0*1000:.2f}mm/s, t_burn_est={t_max:.2f}s")
+
+        times     = [0.0]
+        pressures = [Pc0]
+        thrusts   = [F0]
+        masses    = [total_mass]
+
+        current_web = web
+        current_Dcore = Dcore
+        remaining_mass = total_mass
+        burn_index = numPoints
+
+        for i in range(1, numPoints):
+            t = i * dt
+
+            if pressures[-1] > 0:
+                mdot = RocketMath.massFlowRate(Athroat, pressures[-1], Cstar)
+                remaining_mass -= mdot * dt
+            if remaining_mass < 0:
+                remaining_mass = 0
+
+            Ab = math.pi * current_Dcore * L * Ncores
+            Pc = RocketMath.chamberPressure(a, rho, Ab, Cstar, Athroat, n)
+
+            if current_web <= 0 or remaining_mass <= 0 or Pc < 100000:
+                if burn_index == numPoints:
+                    burn_index = i
+                for j in range(i, numPoints):
+                    times.append(j * dt)
+                    pressures.append(0.0)
+                    thrusts.append(0.0)
+                    masses.append(remaining_mass)
+                break
+
+            r = RocketMath.burnRate(Pc, a, n)
+            F = Pc * Athroat
+
+            times.append(t)
+            pressures.append(Pc)
+            thrusts.append(F)
+            masses.append(remaining_mass)
+            current_web -= r * dt
+            if current_web < 0:
+                current_web = 0
+            current_Dcore = Dout - 2 * current_web
+
+        end_idx = min(burn_index + 5, len(times))
+        times     = times[:end_idx]
+        pressures = pressures[:end_idx]
+        thrusts   = thrusts[:end_idx]
+        masses    = masses[:end_idx]
+
+        print(f"[LOG 3] Mass: {masses[0]:.3f} -> {masses[-1]:.3f} kg, Pc_max={max(pressures)/1e6:.2f}MPa, F_max={max(thrusts):.0f}N")
+
+        total_impulse = 0
+        for i in range(len(times) - 1):
+            dt_actual = times[i+1] - times[i]
+            F_avg = (thrusts[i] + thrusts[i+1]) / 2
+            total_impulse += F_avg * dt_actual
+
+        return {
+            "times": times,
+            "pressures": pressures,
+            "pressuresMpa": [p / 1e6 for p in pressures],
+            "thrusts": thrusts,
+            "masses": masses,
+            "totalImpulse": total_impulse,
+            "avgPressure": sum(pressures) / len(pressures) if pressures else 0,
+            "maxPressure": max(pressures) if pressures else 0,
+            "avgThrust": sum(thrusts) / len(thrusts) if thrusts else 0,
+            "maxThrust": max(thrusts) if thrusts else 0,
+            "burnTime": times[-1] if times else 0,
+            "propellantMass": total_mass,
+            "success": True
+        }
 
     @staticmethod
     def fullCalculation(params):
+        print(f"[LOG 4] fullCalculation started")
         try:
-            Dthroat = params.get("Dthroat", 0.012)
-            Dcore = params.get("Dcore", 0.015)
-            Dexit = params.get("Dexit", Dthroat * 3)
-            L = params.get("L", 0.3)
-            Dout = params.get("Dout", 0.05)
-            Ncores = params.get("Ncores", 1)
-            wallThick = params.get("wallThick", 0.002)
+            Dthroat = params.get("Dthroat", 0.007)
+            Dcore   = params.get("Dcore", 0.018)
+            L       = params.get("L", 0.200)
+            Dout    = params.get("Dout", 0.040)
+            Ncores  = params.get("Ncores", 1)
+            wallThick = params.get("wallThick", 0.003)
             etaComb = params.get("etaComb", 0.95)
+            T0      = params.get("T0", 1720)
+            R_gas   = params.get("R", 197.9)
+            k       = params.get("k", 1.13)
+            a       = params.get("a", 2.5e-5)
+            n       = params.get("n", 0.40)
+            rho     = params.get("rho", 1890)
 
-            Athroat = RocketMath.throatArea(Dthroat)# расчёт площадей
-            Aexit = RocketMath.exitArea(Dexit)
-            Ab = RocketMath.burnArea(Dcore, L, Ncores)
+            Athroat = RocketMath.throatArea(Dthroat)
+            Ab = math.pi * Dcore * L * Ncores
+            Cstar = RocketMath.characteristicVelocity(T0, R_gas, k, etaComb)
+            Pc = RocketMath.chamberPressure(a, rho, Ab, Cstar, Athroat, n)
 
-            Cstar = RocketMath.characteristicVelocity(#термодинафиг
-                params["T0"], params["R"], params["k"], etaComb
-            )
-
-            Pc = RocketMath.chamberPressure(# давить в камере
-                params["a"], params["rho"], Ab, Cstar, Athroat, params["n"]
-            )
-
-            Pa = params.get("Pa", 101325)#коэффиц тяги
-            Cf = RocketMath.ThrustCoefficient(
-                params["k"], Pc, Pa, None, Aexit, Athroat
-            )
-
-            etaNozzle = params.get("etaNozzle", 0.97) # блин сопло потери делает...
-            Cf = RocketMath.thrustCoefficientWithLosses(Cf, etaNozzle)
-
-            F = RocketMath.thrust(Pc, Athroat, Cf) # тяга и масс расХод
+            F = Pc * Athroat
             mdot = RocketMath.massFlowRate(Athroat, Pc, Cstar)
-            Isp = RocketMath.specificImpulse(F, mdot)
-
-            Kn = RocketMath.Kn(Ab, Athroat) # остальная дрибидень
-            r = RocketMath.burnRate(Pc, params["a"], params["n"])
-            mass = RocketMath.propellantMass(params["rho"], L, Dout, Dcore, Ncores)
+            Isp = F / (mdot * 9.80665) if mdot > 0 else 0
+            Kn = Ab / Athroat if Athroat > 0 else 0
+            r = RocketMath.burnRate(Pc, a, n)
+            mass = RocketMath.propellantMass(rho, L, Dout, Dcore, Ncores)
             web = (Dout - Dcore) / 2
-            tBurn = RocketMath.burnTime(web, params["a"], Pc, params["n"])
-            stress = RocketMath.caseStress(Pc, Dout, wallThick)
+            tBurn = web / r if r > 0 else 0
+            stress = Pc * (Dout / 2) / wallThick if wallThick > 0 else 0
+
+            timeEvolution = RocketMath.calculateTimeEvolution(params)
+
+            print(f"[LOG 4] Done: Pc={Pc/1e6:.2f}MPa, F={F:.0f}N, Mass={mass:.3f}kg")
 
             return {
                 "Cstar": Cstar,
                 "Ab": Ab,
                 "Athroat": Athroat,
-                "Aexit": Aexit,
                 "Pc": Pc,
                 "PcMPa": Pc / 1_000_000,
                 "F": F,
-                "Cf": Cf,
                 "mdot": mdot,
                 "Isp": Isp,
                 "Kn": Kn,
@@ -189,7 +208,9 @@ class RocketMath:
                 "mass": mass,
                 "tBurn": tBurn,
                 "stress": stress,
+                "timeEvolution": timeEvolution,
                 "success": True
             }
         except Exception as e:
+            print(f"[LOG 4] ERROR: {e}")
             return {"success": False, "error": str(e)}
