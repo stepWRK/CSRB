@@ -2,3 +2,4 @@ interpreters:
 os
 match
 customtkinter
+https://1drv.ms/p/c/f7b36e1073f0ad8f/IQAbg-FOHECbQ7sole5JhLmpAUfK95r8824X_Tom2n3KIO4?e=hV4Wk1
