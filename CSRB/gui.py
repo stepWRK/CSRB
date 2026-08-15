@@ -259,13 +259,14 @@ class MainWindow:
         self.graph3.grid(row=1, column=2, padx=5, pady=5, sticky="nsew")
 
         ctk.CTkLabel(self.graphsTab, text="Давление, МПа", font=("Arial", 10)).grid(row=2, column=0, pady=(0, 5))
-        ctk.CTkLabel(self.graphsTab, text="Тяга, Н (если графики все одинаковы нажмите «расчитать» на 1 вкладке)", font=("Arial", 10)).grid(row=2, column=1, pady=(0, 5))
+        ctk.CTkLabel(self.graphsTab, text="Тяга, Н (если графики все одинаковы нажмите «расчитать» на 1 вкладке)",
+                     font=("Arial", 10)).grid(row=2, column=1, pady=(0, 5))
         ctk.CTkLabel(self.graphsTab, text="Масса, кг", font=("Arial", 10)).grid(row=2, column=2, pady=(0, 5))
 
         self.tabs["graphs"] = self.graphsTab
         self.tab_loaded["graphs"] = True
 
-        if self.calculationResult:# обнавл граф есл есть результат
+        if self.calculationResult:
             self.updateGraphs()
 
     def updateGraphs(self):
@@ -303,9 +304,30 @@ class MainWindow:
         for key, entry in self.entries.items():
             try:
                 val = entry.get().strip()
-                params[key] = float(val) if '.' in val or 'e' in val.lower() else int(val)
+                if not val:
+                    params[key] = 0
+                    continue
+
+                if '.' in val or 'e' in val.lower() or 'E' in val.lower():
+                    params[key] = float(val)
+                else:
+                    params[key] = int(val)
+
+            except ValueError:
+                params[key] = 0
             except:
                 params[key] = 0
+
+        defaults = {
+            'Ncores': 1,
+            'etaComb': 0.95,
+            'wallThick': 0.002,
+            'safetyFactor': 2.5
+        }
+        for key, default in defaults.items():
+            if key not in params or params[key] == 0:
+                params[key] = default
+
         return params
 
     def setParams(self, params):
@@ -341,6 +363,49 @@ class MainWindow:
 
     def calculate(self):
         params = self.getParams()
+
+        errors = []
+        warnings = []
+
+        required = {
+            'Dthroat': 'Диаметр критики',
+            'Dcore': 'Диаметр канала',
+            'Dout': 'Наружный диаметр',
+            'L': 'Длина шашки',
+            'T0': 'Температура',
+            'R': 'Газовая постоянная',
+            'rho': 'Плотность'
+        }
+
+        for key, name in required.items():
+            if params.get(key, 0) <= 0:
+                errors.append(f"{name} должен быть > 0")
+
+        #логические проверки
+        if params.get('Dout', 0) <= params.get('Dcore', 0):
+            errors.append("Наружный диаметр (Dout) должен быть больше диаметра канала (Dcore)")
+
+        if params.get('Ncores', 1) < 1:
+            errors.append("Количество каналов (Ncores) должно быть >= 1")
+
+        if params.get('Dthroat', 0) >= params.get('Dcore', 0):
+            warnings.append("⚠ Диаметр критики (Dthroat) >= диаметра канала (Dcore)")
+
+        if params.get('T0', 0) > 4000:
+            warnings.append("⚠ Температура > 4000 K - проверьте ввод")
+
+        if params.get('n', 0) < 0.1 or params.get('n', 0) > 0.8:
+            warnings.append("⚠ Показатель степени n вне диапазона 0.1-0.8")
+
+        if errors:
+            msg = "ОШИБКИ ВВОДА:\n\n" + "\n".join(errors)
+            if warnings:
+                msg += "\n\n" + "\n".join(warnings)
+            self.showResult(msg)
+            return
+
+        if warnings:
+            self.showResult("⚠ ПРЕДУПРЕЖДЕНИЯ:\n\n" + "\n".join(warnings) + "\n\nРасчёт продолжен...")
         self.calculationResult = RocketMath.fullCalculation(params)
 
         if self.calculationResult and self.calculationResult.get('success'):
@@ -375,9 +440,10 @@ class MainWindow:
             self.showResult(output)
         else:
             error = self.calculationResult.get('error', 'Unknown') if self.calculationResult else 'No result'
-            self.showResult(f"ОШИБКА: {error}")
+            self.showResult(f"ОШИБКА РАСЧЁТА:\n{error}")
 
-        if self.tab_loaded.get("graphs") and hasattr(self, 'graph1'):# расчитал?! давай по новой Миша, всё фигня..
+        # Обнавляем графики
+        if self.tab_loaded.get("graphs") and hasattr(self, 'graph1'):
             self.updateGraphs()
 
     def run(self):
