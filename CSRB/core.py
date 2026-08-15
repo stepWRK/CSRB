@@ -80,8 +80,8 @@ class RocketMath:
         t_max = web / r0 if r0 > 0 else 1.0
         dt = t_max / numPoints
 
-        print(f"[LOG 1] Dcore={Dcore*1000:.1f}mm, Dout={Dout*1000:.1f}mm, Throat={Dthroat*1000:.1f}mm")
-        print(f"[LOG 2] Pc0={Pc0/1e6:.2f}MPa, r0={r0*1000:.2f}mm/s, t_burn_est={t_max:.2f}s")
+        print(f"LG1 Dcore={Dcore*1000:.1f}mm, Dout={Dout*1000:.1f}mm, Throat={Dthroat*1000:.1f}mm")
+        print(f"LG2 Pc0={Pc0/1e6:.2f}MPa, r0={r0*1000:.2f}mm/s, t_burn_est={t_max:.2f}s")
 
         times     = [0.0]
         pressures = [Pc0]
@@ -133,7 +133,7 @@ class RocketMath:
         thrusts   = thrusts[:end_idx]
         masses    = masses[:end_idx]
 
-        print(f"[LOG 3] Mass: {masses[0]:.3f} -> {masses[-1]:.3f} kg, Pc_max={max(pressures)/1e6:.2f}MPa, F_max={max(thrusts):.0f}N")
+        print(f"LG3 Mass: {masses[0]:.3f} -> {masses[-1]:.3f} kg, Pc_max={max(pressures)/1e6:.2f}MPa, F_max={max(thrusts):.0f}N")
 
         total_impulse = 0
         for i in range(len(times) - 1):
@@ -159,7 +159,7 @@ class RocketMath:
 
     @staticmethod
     def fullCalculation(params):
-        print(f"[LOG 4] fullCalculation started")
+        print(f"LG4 fullCalculation started")
         try:
             Dthroat = params.get("Dthroat", 0.007)
             Dcore   = params.get("Dcore", 0.018)
@@ -192,7 +192,7 @@ class RocketMath:
 
             timeEvolution = RocketMath.calculateTimeEvolution(params)
 
-            print(f"[LOG 4] Done: Pc={Pc/1e6:.2f}MPa, F={F:.0f}N, Mass={mass:.3f}kg")
+            print(f"LG4 Done: Pc={Pc/1e6:.2f}MPa, F={F:.0f}N, Mass={mass:.3f}kg")
 
             return {
                 "Cstar": Cstar,
@@ -212,5 +212,5 @@ class RocketMath:
                 "success": True
             }
         except Exception as e:
-            print(f"[LOG 4] ERROR: {e}")
+            print(f"LG4 ERROR: {e}")
             return {"success": False, "error": str(e)}

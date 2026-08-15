@@ -1,12 +1,3 @@
-# Copyright (C) 2026 stepWRK
-#
-# This file is part of SRBcalculate.
-#
-# SRBcalculate is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
 import customtkinter as ctk
 from core import RocketMath
 from data import DataManager
@@ -15,7 +6,7 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("green")
 
 
-class FastGraph(ctk.CTkCanvas): #графики!
+class FastGraph(ctk.CTkCanvas):
     def __init__(self, master, color="#00ff00", title="", **kwargs):
         super().__init__(master, bg="#1e1e1e", highlightthickness=0, **kwargs)
         self.color = color
@@ -50,8 +41,6 @@ class FastGraph(ctk.CTkCanvas): #графики!
 
         self.create_rectangle(0, 0, w, h, fill="#1e1e1e", outline="")
 
-        print(f"Drawing {self.title}: w={w}, h={h}, points={len(self.dataX)}")
-
         if len(self.dataX) < 2:
             self.create_line(50, h // 2, w - 50, h // 2, fill=self.color, width=5)
             self.create_text(w // 2, h // 2, text="НЕТ ДАННЫХ", fill="white")
@@ -65,14 +54,14 @@ class FastGraph(ctk.CTkCanvas): #графики!
 
         if plotW <= 0 or plotH <= 0:
             return
-        #сетка
+
         for i in range(5):
             y = marginT + plotH * i / 4
             self.create_line(marginL, y, w - marginR, y, fill="#333333", width=1)
             val = self.maxY - (self.maxY - self.minY) * i / 4
             self.create_text(marginL - 5, y, text=f"{val:.1f}", fill="#888888", font=("Arial", 8), anchor="e")
 
-        for i in range(5):#временные метки
+        for i in range(5):
             x = marginL + plotW * i / 4
             self.create_line(x, h - marginB, x, h - marginB + 5, fill="#888888", width=1)
             t = self.dataX[-1] * i / 4 if self.dataX[-1] > 0 else 0
@@ -88,7 +77,7 @@ class FastGraph(ctk.CTkCanvas): #графики!
         if len(points) >= 4:
             self.create_line(points, fill=self.color, width=2)
 
-        self.create_line(marginL, marginT, marginL, h - marginB, fill="white", width=1)# оси
+        self.create_line(marginL, marginT, marginL, h - marginB, fill="white", width=1)
         self.create_line(marginL, h - marginB, w - marginR, h - marginB, fill="white", width=1)
         self.create_text(w // 2, h - 5, text="Время, с", fill="white", font=("Arial", 9))
 
@@ -216,9 +205,65 @@ class MainWindow:
         if self.tab_loaded["help"]:
             return
         self.helpTab = ctk.CTkFrame(self.tabContainer)
-        text_widget = ctk.CTkTextbox(self.helpTab, wrap="word", font=("Arial", 12))
+        text_widget = ctk.CTkTextbox(self.helpTab, wrap="word", font=("Consolas", 11))
         text_widget.pack(fill="both", expand=True, padx=15, pady=15)
-        text_widget.insert("0.0", "Справка по SRBcalculate... Тоже будет")
+
+        help_text = """
+=== ТТРД КАЛЬКУЛЯТОР ===
+Руководство пользователя
+
+1. ВВОД ДАННЫХ
+   - Заполните все поля на вкладке "Основной расчёт"
+   - Параметры топлива: T0, R, k, a, n, rho
+   - Геометрия: L, Dcore, Dout, Dthroat, Ncores
+   - Все размеры в метрах
+
+2. РАСЧЁТ
+   - Нажмите кнопку "РАССЧИТАТЬ"
+   - Результаты появятся справа
+   - При ошибках ввода увидите сообщение
+
+3. ОСНОВНЫЕ ФОРМУЛЫ
+   Pc = (a * rho * Ab * C* / At)^(1/(1-n))
+   r = a * Pc^n
+   F = Pc * At
+   Isp = F / (mdot * g0)
+
+4. ЕДИНИЦЫ ИЗМЕРЕНИЯ
+   - Давление: Па (результат в МПа)
+   - Температура: K
+   - Размеры: метры
+   - Масса: кг
+   - Время: секунды
+
+5. ГРАФИКИ
+   - Перейдите на вкладку "Графики"
+   - Нажмите "Обновить" после расчёта
+   - Отображаются: давление, тяга, масса
+
+6. СОХРАНЕНИЕ
+   - Кнопка "Сохранить" - запись параметров в config.txt
+   - Кнопка "Загрузить" - чтение из config.txt
+   - Кнопка "Сброс" - возврат к значениям по умолчанию
+
+7. ТИПИЧНЫЕ ЗНАЧЕНИЯ
+   HTPB-топливо:
+   T0 = 1720 K, R = 197.6, k = 1.133
+   a = 5.83e-6, n = 0.319, rho = 1892
+
+   Для малых двигателей (до 1000 Н):
+   Dthroat = 0.005-0.015 м
+   Dcore = 0.015-0.030 м
+   Dout = 0.030-0.060 м
+   L = 0.10-0.30 м
+
+8. ОГРАНИЧЕНИЯ
+   - Dout > Dcore > 0
+   - Dthroat > 0
+   - Все параметры должны быть положительными
+   - n обычно в диапазоне 0.1-0.8
+"""
+        text_widget.insert("0.0", help_text)
         text_widget.configure(state="disabled")
         self.tabs["help"] = self.helpTab
         self.tab_loaded["help"] = True
@@ -226,11 +271,132 @@ class MainWindow:
     def create_materials_tab(self):
         if self.tab_loaded["materials"]:
             return
+
         self.materialsTab = ctk.CTkFrame(self.tabContainer)
-        text_widget = ctk.CTkTextbox(self.materialsTab, wrap="none", font=("Consolas", 11))
-        text_widget.pack(fill="both", expand=True, padx=15, pady=15)
-        text_widget.insert("0.0", "База материалов... Верьте мне она тут будет")
-        text_widget.configure(state="disabled")
+        self.materialsTab.grid_columnconfigure(0, weight=1)
+        self.materialsTab.grid_rowconfigure(0, weight=0)
+        self.materialsTab.grid_rowconfigure(1, weight=1)
+
+        topFrame = ctk.CTkFrame(self.materialsTab)
+        topFrame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+
+        ctk.CTkLabel(topFrame, text="ВЫБОР МАТЕРИАЛА ТОПЛИВА", font=("Arial", 16, "bold")).pack(pady=5)
+
+        materials_db = {
+            "HTPB (стандартный)": {
+                "T0": 1720, "R": 197.6, "k": 1.133,
+                "a": 5.83e-6, "n": 0.319, "rho": 1892,
+                "desc": "Полибутадиен с гидроксильными группами\nСтандартное связующее для ТТРД"
+            },
+            "HTPB (высокое содержание Al)": {
+                "T0": 1850, "R": 175.0, "k": 1.15,
+                "a": 4.2e-6, "n": 0.35, "rho": 1950,
+                "desc": "18-20% алюминия\nПовышенная плотность и температура"
+            },
+            "HTPB (низкое содержание Al)": {
+                "T0": 1650, "R": 205.0, "k": 1.12,
+                "a": 6.1e-6, "n": 0.30, "rho": 1850,
+                "desc": "5-10% алюминия\nМеньше температуры, выше газовой постоянной"
+            },
+            "PBAN": {
+                "T0": 1680, "R": 200.0, "k": 1.14,
+                "a": 5.5e-6, "n": 0.32, "rho": 1880,
+                "desc": "Полибутадиен-акрилонитрил\nИспользуется в Solid Rocket Boosters"
+            },
+            "CТПВ (нитроцеллюлозный)": {
+                "T0": 1750, "R": 195.0, "k": 1.13,
+                "a": 6.5e-6, "n": 0.28, "rho": 1910,
+                "desc": "Смесевое твёрдое топливо\nВысокая скорость горения"
+            },
+            "APCP (стандартный)": {
+                "T0": 1700, "R": 198.0, "k": 1.13,
+                "a": 5.0e-6, "n": 0.33, "rho": 1890,
+                "desc": "Аммоний перхлорат композит\nНаиболее распространённый тип"
+            }
+        }
+
+        self.selected_material = "HTPB (стандартный)"
+
+        def on_material_select(choice):
+            self.selected_material = choice
+            if choice in materials_db:
+                desc = materials_db[choice]["desc"]
+                desc_text.configure(state="normal")  # Временно разблокируем
+                desc_text.delete("0.0", "end")
+                desc_text.insert("0.0", desc)
+                desc_text.configure(state="disabled")  # Снова блокируем
+
+        def apply_selected():
+            props = materials_db.get(self.selected_material)
+            if not props:
+                self.showResult("Выберите материал из списка")
+                return
+
+            mappings = {
+                'T0': 'T0',
+                'R': 'R',
+                'k': 'k',
+                'a': 'a',
+                'n': 'n',
+                'rho': 'rho'
+            }
+
+            for prop_key, entry_key in mappings.items():
+                if prop_key in props and entry_key in self.entries:
+                    self.entries[entry_key].delete(0, "end")
+                    value = props[prop_key]
+                    if isinstance(value, float) and value < 0.001:
+                        self.entries[entry_key].insert(0, f"{value:.2e}")
+                    else:
+                        self.entries[entry_key].insert(0, str(value))
+
+            self.showResult(f"Загружены параметры: {self.selected_material}")
+
+        material_menu = ctk.CTkOptionMenu(
+            topFrame,
+            values=list(materials_db.keys()),
+            variable=ctk.StringVar(value="HTPB (стандартный)"),
+            command=on_material_select,
+            width=300
+        )
+        material_menu.pack(pady=5)
+
+        desc_text = ctk.CTkTextbox(topFrame, height=80, wrap="word", font=("Arial", 11))
+        desc_text.pack(fill="x", padx=10, pady=5)
+
+        desc_text.insert("0.0", materials_db["HTPB (стандартный)"]["desc"])
+        desc_text.configure(state="disabled")
+
+        ctk.CTkButton(
+            topFrame,
+            text="Применить параметры",
+            command=apply_selected,
+            height=35,
+            fg_color="#2e7d32",
+            hover_color="#1e5a20"
+        ).pack(pady=5)
+
+        bottomFrame = ctk.CTkFrame(self.materialsTab)
+        bottomFrame.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
+
+        ctk.CTkLabel(bottomFrame, text="СВОЙСТВА МАТЕРИАЛОВ", font=("Arial", 14, "bold")).pack(pady=5)
+
+        table_text = ctk.CTkTextbox(bottomFrame, wrap="none", font=("Consolas", 10))
+        table_text.pack(fill="both", expand=True, padx=10, pady=5)
+
+        table = "┌─────────────────────┬──────────┬──────────┬──────────┬────────────┬────────────┬──────────┐\n"
+        table += "│ Материал            │ T0, K    │ R, Дж/кг │ k        │ a          │ n          │ ρ, кг/м³ │\n"
+        table += "├─────────────────────┼──────────┼──────────┼──────────┼────────────┼────────────┼──────────┤\n"
+
+        for name, props in materials_db.items():
+            name_display = name[:20].ljust(20)
+            table += f"│ {name_display}│ {props['T0']:>8} │ {props['R']:>8} │ {props['k']:>8} │ {props['a']:>10.2e} │ {props['n']:>10} │ {props['rho']:>8} │\n"
+
+        table += "└─────────────────────┴──────────┴──────────┴──────────┴────────────┴────────────┴──────────┘"
+
+        table_text.insert("0.0", table)
+        table_text.configure(state="disabled")
+
         self.tabs["materials"] = self.materialsTab
         self.tab_loaded["materials"] = True
 
@@ -259,8 +425,7 @@ class MainWindow:
         self.graph3.grid(row=1, column=2, padx=5, pady=5, sticky="nsew")
 
         ctk.CTkLabel(self.graphsTab, text="Давление, МПа", font=("Arial", 10)).grid(row=2, column=0, pady=(0, 5))
-        ctk.CTkLabel(self.graphsTab, text="Тяга, Н (если графики все одинаковы нажмите «расчитать» на 1 вкладке)",
-                     font=("Arial", 10)).grid(row=2, column=1, pady=(0, 5))
+        ctk.CTkLabel(self.graphsTab, text="Тяга, Н", font=("Arial", 10)).grid(row=2, column=1, pady=(0, 5))
         ctk.CTkLabel(self.graphsTab, text="Масса, кг", font=("Arial", 10)).grid(row=2, column=2, pady=(0, 5))
 
         self.tabs["graphs"] = self.graphsTab
@@ -271,7 +436,6 @@ class MainWindow:
 
     def updateGraphs(self):
         if not self.calculationResult:
-            print("No calculation result!")
             return
 
         timeEvo = self.calculationResult.get('timeEvolution')
@@ -307,12 +471,10 @@ class MainWindow:
                 if not val:
                     params[key] = 0
                     continue
-
                 if '.' in val or 'e' in val.lower() or 'E' in val.lower():
                     params[key] = float(val)
                 else:
                     params[key] = int(val)
-
             except ValueError:
                 params[key] = 0
             except:
@@ -379,23 +541,22 @@ class MainWindow:
 
         for key, name in required.items():
             if params.get(key, 0) <= 0:
-                errors.append(f"{name} должен быть > 0")
+                errors.append(f"X {name} должен быть > 0")
 
-        #логические проверки
         if params.get('Dout', 0) <= params.get('Dcore', 0):
-            errors.append("Наружный диаметр (Dout) должен быть больше диаметра канала (Dcore)")
+            errors.append("X Наружный диаметр (Dout) должен быть больше диаметра канала (Dcore)")
 
         if params.get('Ncores', 1) < 1:
-            errors.append("Количество каналов (Ncores) должно быть >= 1")
+            errors.append("X Количество каналов (Ncores) должно быть >= 1")
 
         if params.get('Dthroat', 0) >= params.get('Dcore', 0):
-            warnings.append("⚠ Диаметр критики (Dthroat) >= диаметра канала (Dcore)")
+            warnings.append("! Диаметр критики (Dthroat) >= диаметра канала (Dcore)")
 
         if params.get('T0', 0) > 4000:
-            warnings.append("⚠ Температура > 4000 K - проверьте ввод")
+            warnings.append("! Температура > 4000 K - проверьте ввод")
 
         if params.get('n', 0) < 0.1 or params.get('n', 0) > 0.8:
-            warnings.append("⚠ Показатель степени n вне диапазона 0.1-0.8")
+            warnings.append("! Показатель степени n вне диапазона 0.1-0.8")
 
         if errors:
             msg = "ОШИБКИ ВВОДА:\n\n" + "\n".join(errors)
@@ -405,22 +566,21 @@ class MainWindow:
             return
 
         if warnings:
-            self.showResult("⚠ ПРЕДУПРЕЖДЕНИЯ:\n\n" + "\n".join(warnings) + "\n\nРасчёт продолжен...")
+            self.showResult("ПРЕДУПРЕЖДЕНИЯ:\n\n" + "\n".join(warnings) + "\n\nРасчёт продолжен...")
+
         self.calculationResult = RocketMath.fullCalculation(params)
 
         if self.calculationResult and self.calculationResult.get('success'):
             r = self.calculationResult
             output = f"""
-╔══════════════════════════════════════════════════════════════╗
-║                    РЕЗУЛЬТАТЫ РАСЧЁТА                        ║
-╚══════════════════════════════════════════════════════════════╝
+РЕЗУЛЬТАТЫ РАСЧЁТА
 
 ТЕРМОДИНАМИКА:
    C* = {r['Cstar']:.0f} м/с
 
 ГЕОМЕТРИЯ:
-   Ab = {r['Ab'] * 10000:.1f} см²
-   A* = {r['Athroat'] * 1e6:.1f} мм²
+   Ab = {r['Ab'] * 10000:.1f} см2
+   A* = {r['Athroat'] * 1e6:.1f} мм2
    Kn = {r['Kn']:.0f}
 
 КАМЕРА СГОРАНИЯ:
@@ -442,7 +602,6 @@ class MainWindow:
             error = self.calculationResult.get('error', 'Unknown') if self.calculationResult else 'No result'
             self.showResult(f"ОШИБКА РАСЧЁТА:\n{error}")
 
-        # Обнавляем графики
         if self.tab_loaded.get("graphs") and hasattr(self, 'graph1'):
             self.updateGraphs()
 

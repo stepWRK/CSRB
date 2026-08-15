@@ -7,7 +7,7 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 
-import os # да не буду я удалять system32
+import os # да не буду я удалять system32 (или нет)
 
 class DataManager:
     @staticmethod
@@ -60,16 +60,16 @@ class DataManager:
             return False, str(e), params
 
     @staticmethod
-    def getDefaultParams():#парамЕтры по умолчанию
+    def getDefaultParams():
         return {
             'T0': 1720,
-            'R': 197.9,
+            'R': 197.6,
             'k': 1.133,
             'a': 5.83e-6,
             'n': 0.319,
-            'rho': 1890,
-            'L': 0.150,
+            'rho': 1892,
+            'L': 0.156,
             'Dcore': 0.018,
-            'Dout': 0.040,
+            'Dout': 0.041,
             'Dthroat': 0.007
         }
