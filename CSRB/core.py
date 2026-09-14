@@ -59,7 +59,7 @@ class RocketMath:
         T0      = params.get("T0", 1720)
         R_gas   = params.get("R", 197.9)
         k       = params.get("k", 1.13)
-        a       = params.get("a", 2.5e-5)  #реализме ( увеличено для него)
+        a       = params.get("a", 2.5e-5)  #реализме (увеличено для него)
         n       = params.get("n", 0.40)
         rho     = params.get("rho", 1890)
 
